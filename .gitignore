@@ -1,0 +1,14 @@
+# Dependencies & Build
+.vercel
+node_modules/
+dist/
+.env*
+
+# OS Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+npm-debug.log*
