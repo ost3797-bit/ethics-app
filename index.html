@@ -545,7 +545,12 @@
           <!-- ---------- 2단계: 원리 파헤치기 ---------- -->
           <div id="panel-decomp" class="grid grid-cols-1 gap-4 xl:grid-cols-5">
             <div class="xl:col-span-3">
-              <p class="mb-2 text-[13px] font-semibold text-slate-300">🔍 쿠키몰 서버 속에 <b class="text-amber-300">숨겨진 알고리즘</b>을 블록으로 꺼내 봤어요. 상품 위에 마우스를 올려 보세요!</p>
+              <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <p class="text-[13px] font-semibold text-slate-300">🔍 쿠키몰 서버 속에 <b class="text-amber-300">숨겨진 알고리즘</b>을 블록으로 꺼내 봤어요. 상품 위에 마우스를 올려 보세요!</p>
+                <button id="btn-decomp-toggle-consent" type="button" class="flex items-center gap-1.5 rounded-xl border border-amber-400/50 bg-slate-800/90 px-3 py-1 text-[12px] font-extrabold text-amber-300 shadow transition hover:bg-slate-700 active:scale-95">
+                  🔄 현재: 동의(Yes) ⇄ 거부(No) 바꿔보기
+                </button>
+              </div>
               <div class="flex flex-col items-start gap-1">
                 <div class="blk blk-hat" style="--c:#FFBF00">🏁 시작했을 때</div>
                 <div id="dc-if-consent" class="c-wrap" style="--c:#FFAB19">
@@ -814,6 +819,7 @@
       dwellTenths: 0,           // 누적 체류 시간(0.1초 단위 정수)
       blockedTenths: 0,         // 차단 상태에서 마우스를 올린 시간(사용자 측)
       blockedGoalDone: false,
+      decompRuns: 0,            // 2단계(원리 파헤치기)에서 블록 코드 실행 관찰 횟수
       logs: [],
       seq: 0,
       interest: Object.fromEntries(PRODUCTS.map(p => [p.id, 0])),
@@ -1225,6 +1231,18 @@
         $('dc-body-hover').classList.toggle('dimmed', !(hovering && yes));
         $('dc-loop').classList.toggle('glow-on', hovering && isTracking());
 
+        // 상단 동의/거부 비교 토글 버튼 상태 업데이트
+        const toggleBtn = $('btn-decomp-toggle-consent');
+        if (toggleBtn) {
+          if (yes) {
+            toggleBtn.innerHTML = '🟢 현재: 동의(Yes) 상태 · 눌러서 거부(No)와 비교하기';
+            toggleBtn.className = 'flex items-center gap-1.5 rounded-xl border border-amber-400/60 bg-amber-500/15 px-3 py-1 text-[12px] font-extrabold text-amber-300 shadow transition hover:bg-amber-500/25 active:scale-95';
+          } else {
+            toggleBtn.innerHTML = '🛡️ 현재: 거부(No) 상태 · 눌러서 동의(Yes)로 바꾸기';
+            toggleBtn.className = 'flex items-center gap-1.5 rounded-xl border border-emerald-400/60 bg-emerald-500/15 px-3 py-1 text-[12px] font-extrabold text-emerald-300 shadow transition hover:bg-emerald-500/25 active:scale-95';
+          }
+        }
+
         // 변수 모니터
         $('mon-consent').textContent = state.consent === null ? '미정' : yes ? '"Yes"' : '"No"';
         $('mon-hover').textContent = hovering ? '참' : '거짓';
@@ -1236,6 +1254,14 @@
         if (state.mode !== 2) return;
         FX.flash($('dc-add'));
         setTimeout(() => FX.flash($('dc-score')), 150);
+        state.decompRuns = (state.decompRuns || 0) + 1;
+        if (state.decompRuns === 3) {
+          Sound.ding();
+          Phone.toast('💡 블록 코드 작동 3회 관찰 완료!', 3000);
+          Coach.sync(true);
+        } else {
+          Coach.sync();
+        }
       },
     };
 
@@ -1480,14 +1506,35 @@
       getStep() {
         if (MissionGuide.isOpen || !this.enabled || state.patched) return null;
 
-        // 2단계 또는 3단계 탭이 열려 있는 경우
+        // 2단계(원리 파헤치기) 탭이 열려 있는 경우: 블록 실행 3회 관찰 전/후로 구분
         if (state.mode === 2) {
+          const runs = state.decompRuns || 0;
+          if (runs < 3) {
+            if (!isTracking()) {
+              return {
+                targetId: 'btn-decomp-toggle-consent',
+                pos: 'top',
+                step: '🕵️ 2단계 · 원리 파헤치기 (1 / 2)',
+                title: '🟢 블록 작동을 보려면 [동의(Yes)]로 바꿔보세요!',
+                desc: '거부(No) 상태에서는 첫 번째 조건문에서 블록이 멈춰요! 위 버튼을 눌러 <b class="text-amber-300">[동의(Yes)]</b> 상태로 바꾼 뒤 블록이 돌아가는 모습을 관찰해 보세요!',
+                nextLabel: '🟢 동의(Yes) 상태로 바꾸기 ▶',
+                onNext: () => Sim.toggleDecompConsent(),
+              };
+            }
+            return {
+              targetId: 'product-grid',
+              pos: 'top',
+              step: '🕵️ 2단계 · 원리 파헤치기 (1 / 2)',
+              title: '🔍 상품에 마우스를 올려 블록이 작동하는 걸 보세요!',
+              desc: `블록이 돌아가는 걸 관찰하기 위해 다시 <b class="text-amber-300">[쿠키 동의(Yes)]</b> 상태로 바꿨어요!<br>상품 위에 마우스를 올린 채, <b class="text-cyan-300">오른쪽 아래 블록 코드가 1초마다 반짝이며 쿠키를 저장하는 모습</b>을 3번 확인해 보세요!<br><span class="mt-1.5 inline-block rounded-lg bg-slate-800 px-2.5 py-1 text-[13px] font-extrabold text-amber-300 ring-1 ring-amber-400/40">⚡ 블록 실행 관찰: ${runs} / 3회 (3초 동안 마우스를 올려보세요!)</span>`,
+            };
+          }
           return {
             targetId: 'tab-mode-3',
             pos: 'bottom',
-            step: '🕵️ 탐정 가이드 · 보너스',
-            title: '🛠️ 직접 방패 코드 조립하러 가기!',
-            desc: '상품에 마우스를 올리면 블록이 반짝여요! 원리를 확인했다면 상단의 <b class="text-amber-300">[🛠️ 3단계: 방패 만들기]</b> 탭을 눌러 보세요!',
+            step: '🕵️ 2단계 · 원리 파헤치기 완료! (2 / 2)',
+            title: '💡 범인 블록 발견! 이제 방패를 만들러 가볼까요?',
+            desc: '보셨나요? <b class="text-amber-300">쿠키 동의 == "Yes"</b>일 때 마우스가 닿으면 <b class="text-rose-300">1초마다 끝없이 발자국을 빼가는 블록 코드</b>였어요!<br>이제 이 코드를 막는 방패를 직접 조립하러 가볼까요?',
             nextLabel: '🛠️ 3단계: 방패 만들기로 이동 ▶',
             onNext: () => Sim.setMode(3),
           };
@@ -1858,6 +1905,22 @@
         this.refreshAll();
       },
 
+      toggleDecompConsent() {
+        Sound.click();
+        const nextChoice = state.consent === 'yes' ? 'no' : 'yes';
+        state.consent = nextChoice;
+        state.optOut = nextChoice === 'no';
+        Phone.hideConsentBanner();
+        if (nextChoice === 'yes') {
+          Console.log('mode', '[DECOMP] 🟢 2단계 비교 스위치: [동의(Yes)] 상태 → 상품에 마우스를 올리면 블록이 작동합니다');
+          Phone.toast('🟢 [동의(Yes)] 상태! 상품에 마우스를 올려 블록을 관찰하세요');
+        } else {
+          Console.log('mode', '[DECOMP] 🛡️ 2단계 비교 스위치: [거부(No)] 상태 → 첫 번째 조건문에서 블록이 멈춥니다');
+          Phone.toast('🛡️ [거부(No)] 상태! 첫 번째 조건문에서 블록이 멈춰요');
+        }
+        this.refreshAll();
+      },
+
       setMode(mode) {
         state.mode = mode;
         document.querySelectorAll('.mode-tab').forEach(btn => {
@@ -1867,12 +1930,20 @@
           Drawer.close();
           Console.log('mode', '[MODE] 🎮 1단계: 체험 — 직접 써 보며 관찰해요');
         } else {
+          // 2단계(원리 파헤치기) 진입 시, 블록 코드가 작동하는 모습을 바로 볼 수 있도록 자동으로 [쿠키 동의(Yes)] 상태로 전환
+          if (mode === 2 && !state.patched && state.consent !== 'yes') {
+            state.consent = 'yes';
+            state.optOut = false;
+            Phone.hideConsentBanner();
+            Console.log('mode', '[DECOMP] 🔍 블록 코드 작동 원리를 관찰하기 위해 [쿠키 동의(Yes)] 상태로 자동 전환했습니다');
+            Phone.toast('🔍 블록 작동 관찰을 위해 [쿠키 동의(Yes)]로 바꿨어요!', 3200);
+          }
           Drawer.open(mode);
           Console.log('mode', mode === 2
             ? '[MODE] 🧩 2단계: 원리 파헤치기 — 숨겨진 수집 비밀을 들여다봐요'
             : '[MODE] 🛠️ 3단계: 방패 만들기 — 발자국을 막는 코드를 직접 조립해요');
         }
-        Decomp.update();
+        this.refreshAll();
         Coach.sync(true);
       },
 
@@ -1908,6 +1979,7 @@
       $('btn-consent-no').addEventListener('click', () => Sim.chooseConsent('no'));
       $('btn-reset').addEventListener('click', () => Sim.reset());
       $('btn-clear-cookies').addEventListener('click', () => Sim.clearCookies());
+      $('btn-decomp-toggle-consent')?.addEventListener('click', () => Sim.toggleDecompConsent());
       $('push-ad').addEventListener('click', () => {
         Phone.hideAd();
         if (Coach.step === 3) Coach.step = 4;
