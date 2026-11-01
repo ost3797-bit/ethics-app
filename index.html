@@ -525,7 +525,7 @@
       </div>
 
       <!-- ===================== 하단 슬라이드 패널 (2·3단계) ===================== -->
-      <div id="drawer" class="drawer glass absolute inset-x-0 bottom-0 z-30 flex h-[66%] flex-col rounded-t-3xl border-t border-slate-600/70 shadow-[0_-20px_50px_-10px_rgba(0,0,0,.6)]">
+      <div id="drawer" class="drawer glass absolute inset-x-0 bottom-0 z-30 flex h-[72%] flex-col rounded-t-3xl border-t border-slate-600/70 shadow-[0_-20px_50px_-10px_rgba(0,0,0,.6)]">
         <div id="drawer-handle" class="flex h-[3.25rem] shrink-0 cursor-pointer items-center justify-between border-b border-slate-700/70 px-5">
           <div class="flex min-w-0 items-center gap-2">
             <span id="drawer-icon" class="text-[20px]">🧩</span>
@@ -564,6 +564,13 @@
                           <div class="c-body">
                             <div id="dc-add" class="blk" style="--c:#FF661A"><span class="slot">체류 데이터</span>를 <span class="var">체류시간 쿠키 리스트</span>에 추가하기</div>
                             <div id="dc-score" class="blk" style="--c:#FF8C1A"><span class="var">AI 관심도 변수</span>에 <span class="slot">20</span> 더하기</div>
+                            <div id="dc-if-ad" class="c-wrap" style="--c:#FFAB19">
+                              <div class="c-head">만일 <span class="hex" style="--h:#59C059"><span class="var">AI 관심도 변수</span> &gt;= <span class="slot">100</span></span> 이라면 <span id="dc-chip-ad" class="eval-chip">❌ 거짓 (0/100)</span></div>
+                              <div id="dc-body-ad" class="c-body dimmed">
+                                <div id="dc-send-ad" class="blk" style="--c:#9966FF">🎯 스마트폰에 <span class="slot">"50% 할인 맞춤 광고"</span> 푸시 메시지 보내기</div>
+                              </div>
+                              <div class="c-foot"></div>
+                            </div>
                           </div>
                           <div class="c-foot"></div>
                         </div>
@@ -583,14 +590,15 @@
                   <div class="flex overflow-hidden rounded-lg ring-1 ring-slate-600"><span class="bg-[#5CB1D6] px-2.5 py-1 font-bold text-white">마우스 닿음?</span><span id="mon-hover" class="flex-1 bg-white px-2.5 py-1 font-bold text-slate-800">거짓</span></div>
                   <div class="flex overflow-hidden rounded-lg ring-1 ring-slate-600"><span class="bg-[#FF661A] px-2.5 py-1 font-bold text-white">체류시간 쿠키 리스트</span><span id="mon-list" class="flex-1 bg-white px-2.5 py-1 font-bold text-slate-800">0개</span></div>
                   <div class="flex overflow-hidden rounded-lg ring-1 ring-slate-600"><span class="bg-[#FF8C1A] px-2.5 py-1 font-bold text-white">AI 관심도 변수</span><span id="mon-score" class="flex-1 bg-white px-2.5 py-1 font-bold text-slate-800">0</span></div>
+                  <div class="flex overflow-hidden rounded-lg ring-1 ring-slate-600"><span class="bg-[#9966FF] px-2.5 py-1 font-bold text-white">맞춤 광고 발송</span><span id="mon-ad" class="flex-1 bg-white px-2.5 py-1 font-bold text-slate-800">대기 중 (100점 도달 시 발송)</span></div>
                 </div>
               </div>
               <div class="rounded-2xl bg-indigo-500/10 p-3 text-[13px] leading-relaxed text-indigo-100 ring-1 ring-indigo-400/30">
                 <p class="font-extrabold">💡 관찰 포인트</p>
                 <ul class="mt-1 list-disc space-y-0.5 pl-4 text-indigo-100/90">
-                  <li>마우스를 올리면 <b class="text-amber-300">어떤 블록</b>이 반짝이나요?</li>
-                  <li>1초마다 리스트에 쌓이는 건 <b class="text-amber-300">무엇</b>일까요?</li>
-                  <li>'거부'를 누르면 <b class="text-amber-300">어느 블록에서 멈출까요?</b></li>
+                  <li>마우스를 올리면 <b class="text-amber-300">1초마다 어떤 블록</b>이 반짝이나요?</li>
+                  <li><b class="text-amber-300">AI 관심도가 100(5초)</b>이 되는 순간 어떤 보라색 블록이 실행되나요?</li>
+                  <li>'거부'로 바꾸면 <b class="text-amber-300">어느 블록에서 멈출까요?</b></li>
                 </ul>
               </div>
             </div>
@@ -1243,21 +1251,50 @@
           }
         }
 
-        // 변수 모니터
+        // 변수 모니터 & 맞춤 광고 발송 조건문 블록 업데이트
+        const p = getProduct(state.hoverId);
+        const curScore = p ? state.interest[p.id] : Math.max(0, ...Object.values(state.interest));
+        const adReady = yes && curScore >= 100;
+
+        if ($('dc-chip-ad')) {
+          $('dc-chip-ad').textContent = adReady ? '✅ 참 (100점 도달!)' : `❌ 거짓 (${curScore}/100)`;
+        }
+        if ($('dc-if-ad')) {
+          $('dc-if-ad').classList.toggle('glow-on', hovering && adReady);
+        }
+        if ($('dc-body-ad')) {
+          $('dc-body-ad').classList.toggle('dimmed', !adReady);
+        }
+
         $('mon-consent').textContent = state.consent === null ? '미정' : yes ? '"Yes"' : '"No"';
         $('mon-hover').textContent = hovering ? '참' : '거짓';
         $('mon-list').textContent = `${state.logs.length}개`;
-        const p = getProduct(state.hoverId);
-        $('mon-score').textContent = p ? `${state.interest[p.id]} (${p.short})` : String(Math.max(...Object.values(state.interest)));
+        $('mon-score').textContent = p ? `${state.interest[p.id]} (${p.short})` : String(curScore);
+        if ($('mon-ad')) {
+          const anySent = Object.keys(state.profiled).length > 0;
+          $('mon-ad').textContent = anySent ? '🎯 발송 완료! (50% 할인 쿠폰)' : `대기 중 (${curScore} / 100점)`;
+          $('mon-ad').className = anySent
+            ? 'flex-1 bg-purple-100 px-2.5 py-1 font-extrabold text-purple-800'
+            : 'flex-1 bg-white px-2.5 py-1 font-bold text-slate-800';
+        }
       },
       onCollect() {
         if (state.mode !== 2) return;
+        const p = getProduct(state.hoverId);
+        const reachedAd = p && state.interest[p.id] >= 100;
         FX.flash($('dc-add'));
-        setTimeout(() => FX.flash($('dc-score')), 150);
+        setTimeout(() => FX.flash($('dc-score')), 140);
+        if (reachedAd) {
+          setTimeout(() => {
+            FX.flash($('dc-if-ad'));
+            FX.flash($('dc-send-ad'));
+          }, 280);
+        }
         state.decompRuns = (state.decompRuns || 0) + 1;
-        if (state.decompRuns === 3) {
+        if (reachedAd || state.decompRuns >= 5) {
+          state.decompAdObserved = true;
           Sound.ding();
-          Phone.toast('💡 블록 코드 작동 3회 관찰 완료!', 3000);
+          Phone.toast('💡 쿠키 저장부터 맞춤 광고 발송 블록까지 모두 확인했어요!', 3200);
           Coach.sync(true);
         } else {
           Coach.sync();
@@ -1506,10 +1543,11 @@
       getStep() {
         if (MissionGuide.isOpen || !this.enabled || state.patched) return null;
 
-        // 2단계(원리 파헤치기) 탭이 열려 있는 경우: 블록 실행 3회 관찰 전/후로 구분
+        // 2단계(원리 파헤치기) 탭이 열려 있는 경우: 맞춤 광고 발송 블록(100점, 5회) 실행 관찰 전/후로 구분
         if (state.mode === 2) {
-          const runs = state.decompRuns || 0;
-          if (runs < 3) {
+          const runs = Math.min(5, state.decompRuns || 0);
+          const done = !!state.decompAdObserved || runs >= 5;
+          if (!done) {
             if (!isTracking()) {
               return {
                 targetId: 'btn-decomp-toggle-consent',
@@ -1521,20 +1559,21 @@
                 onNext: () => Sim.toggleDecompConsent(),
               };
             }
+            const maxScore = Math.max(0, ...Object.values(state.interest));
             return {
               targetId: 'product-grid',
               pos: 'top',
               step: '🕵️ 2단계 · 원리 파헤치기 (1 / 2)',
-              title: '🔍 상품에 마우스를 올려 블록이 작동하는 걸 보세요!',
-              desc: `블록이 돌아가는 걸 관찰하기 위해 다시 <b class="text-amber-300">[쿠키 동의(Yes)]</b> 상태로 바꿨어요!<br>상품 위에 마우스를 올린 채, <b class="text-cyan-300">오른쪽 아래 블록 코드가 1초마다 반짝이며 쿠키를 저장하는 모습</b>을 3번 확인해 보세요!<br><span class="mt-1.5 inline-block rounded-lg bg-slate-800 px-2.5 py-1 text-[13px] font-extrabold text-amber-300 ring-1 ring-amber-400/40">⚡ 블록 실행 관찰: ${runs} / 3회 (3초 동안 마우스를 올려보세요!)</span>`,
+              title: '🔍 상품에 마우스를 5초 올려 광고 블록까지 확인하세요!',
+              desc: `원리 관찰을 위해 다시 <b class="text-amber-300">[쿠키 동의(Yes)]</b> 상태로 바꿨어요!<br>상품 하나에 마우스를 5초 동안 올려두고, 오른쪽 아래 블록에서 <b class="text-cyan-300">1초마다 쿠키가 저장</b>되다가 <b class="text-purple-300">100점이 되면 보라색 [맞춤 광고 보내기] 블록이 실행</b>되는 모습을 확인해 보세요!<br><span class="mt-1.5 inline-block rounded-lg bg-slate-800 px-2.5 py-1 text-[13px] font-extrabold text-amber-300 ring-1 ring-amber-400/40">⚡ 블록 관찰 진행도: AI 관심도 ${maxScore} / 100점 (${runs} / 5회)</span>`,
             };
           }
           return {
             targetId: 'tab-mode-3',
             pos: 'bottom',
             step: '🕵️ 2단계 · 원리 파헤치기 완료! (2 / 2)',
-            title: '💡 범인 블록 발견! 이제 방패를 만들러 가볼까요?',
-            desc: '보셨나요? <b class="text-amber-300">쿠키 동의 == "Yes"</b>일 때 마우스가 닿으면 <b class="text-rose-300">1초마다 끝없이 발자국을 빼가는 블록 코드</b>였어요!<br>이제 이 코드를 막는 방패를 직접 조립하러 가볼까요?',
+            title: '💡 쿠키 수집 + 맞춤 광고 발송 블록 모두 확인 완료!',
+            desc: '보셨나요? <b class="text-amber-300">1초마다 체류 데이터</b>를 쌓아 점수를 올리고, <b class="text-purple-300">100점이 되면 자동으로 맞춤 광고를 쏘는 블록 코드</b>였어요!<br>이제 이 코드를 막는 방패를 직접 조립하러 가볼까요?',
             nextLabel: '🛠️ 3단계: 방패 만들기로 이동 ▶',
             onNext: () => Sim.setMode(3),
           };
@@ -1930,13 +1969,20 @@
           Drawer.close();
           Console.log('mode', '[MODE] 🎮 1단계: 체험 — 직접 써 보며 관찰해요');
         } else {
-          // 2단계(원리 파헤치기) 진입 시, 블록 코드가 작동하는 모습을 바로 볼 수 있도록 자동으로 [쿠키 동의(Yes)] 상태로 전환
-          if (mode === 2 && !state.patched && state.consent !== 'yes') {
-            state.consent = 'yes';
-            state.optOut = false;
-            Phone.hideConsentBanner();
-            Console.log('mode', '[DECOMP] 🔍 블록 코드 작동 원리를 관찰하기 위해 [쿠키 동의(Yes)] 상태로 자동 전환했습니다');
-            Phone.toast('🔍 블록 작동 관찰을 위해 [쿠키 동의(Yes)]로 바꿨어요!', 3200);
+          // 2단계(원리 파헤치기) 진입 시, 쿠키 저장부터 100점 맞춤 광고 발송 블록까지 처음부터 관찰할 수 있도록 [동의(Yes)] 전환 및 관심도 초기화
+          if (mode === 2 && !state.patched) {
+            if (!state.decompAdObserved) {
+              state.interest = Object.fromEntries(PRODUCTS.map(p => [p.id, 0]));
+              state.profiled = {};
+              state.decompRuns = 0;
+            }
+            if (state.consent !== 'yes') {
+              state.consent = 'yes';
+              state.optOut = false;
+              Phone.hideConsentBanner();
+              Console.log('mode', '[DECOMP] 🔍 블록 코드 작동 원리를 관찰하기 위해 [쿠키 동의(Yes)] 상태로 자동 전환했습니다');
+              Phone.toast('🔍 블록 작동 관찰을 위해 [쿠키 동의(Yes)]로 바꿨어요!', 3200);
+            }
           }
           Drawer.open(mode);
           Console.log('mode', mode === 2
