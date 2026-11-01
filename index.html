@@ -667,7 +667,7 @@
   <!-- ========================================================= -->
   <div id="coach-ring" class="coach-ring hidden" aria-hidden="true"></div>
   <div id="coach-bubble" class="coach-bubble hidden" role="status" aria-live="polite">
-    <div class=" coach-bob relative rounded-2xl border-2 border-amber-400/90 bg-slate-900/95 p-4 text-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.75),0_0_25px_rgba(250,204,21,0.35)] backdrop-blur-md">
+    <div class="relative rounded-2xl border-2 border-amber-400/90 bg-slate-900/95 p-4 text-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.75),0_0_25px_rgba(250,204,21,0.35)] backdrop-blur-md">
       <div class="flex items-center justify-between gap-2">
         <span id="coach-step" class="inline-flex items-center gap-1 rounded-full bg-amber-400 px-2.5 py-0.5 text-[12px] font-black text-slate-950 shadow">
           🕵️ 탐정 가이드 1 / 5
@@ -678,6 +678,9 @@
       </div>
       <p id="coach-title" class="mt-2 text-[16.5px] font-black leading-snug text-white"></p>
       <p id="coach-desc" class="mt-1 text-[14.5px] font-semibold leading-relaxed text-slate-200"></p>
+      <button id="coach-next" class="pointer-events-auto mt-3 hidden w-full items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-cyan-300 px-4 py-2 text-[14px] font-black text-slate-950 shadow-md transition hover:brightness-105 active:scale-95">
+        다 읽었어요 · 다음 단계 ▶
+      </button>
     </div>
   </div>
   <button id="coach-reopen" class="fixed bottom-4 right-4 z-[180] hidden items-center gap-1.5 rounded-full border border-amber-400/60 bg-slate-900/95 px-4 py-2.5 text-[13px] font-extrabold text-amber-300 shadow-xl transition hover:bg-slate-800 hover:text-white active:scale-95">
@@ -1038,7 +1041,9 @@
         $('island-icon').classList.remove('hidden');
         Sound.ding();
         clearTimeout(this.adTimer);
-        this.adTimer = setTimeout(() => this.hideAd(), CONFIG.AD_HIDE_MS);
+        // 코치마크 가이드가 켜져 있을 때는 학생이 다 읽고 [다음 단계 ▶]를 누를 때까지 광고를 유지
+        const keepMs = (typeof Coach !== 'undefined' && Coach.enabled) ? 60000 : CONFIG.AD_HIDE_MS;
+        this.adTimer = setTimeout(() => this.hideAd(), keepMs);
       },
 
       hideAd() {
@@ -1395,13 +1400,16 @@
     };
 
     /* =========================================================
-     * 10-2. 인터랙티브 코치마크 튜토리얼 (단계별 스포트라이트 가이드)
+     * 10-2. 인터랙티브 코치마크 튜토리얼 (단계별 단방향 고정 가이드)
+     *  - 마우스 이동(hover)으로 단계가 앞뒤로 튀지 않도록 단방향(step 1~6) 고정
+     *  - 설명을 읽어야 하는 단계에서는 [다 읽었어요 · 다음 단계 ▶] 버튼으로 직접 진행
      * ========================================================= */
     const Coach = {
       enabled: true,
-      seenYesAd: false,
-      adSpotUntil: 0,
+      step: 1, // 1: 동의 클릭 -> 2: 5초 호버&서버관찰 -> 3: 맞춤광고 확인(버튼) -> 4: 다시시작(버튼) -> 5: 거부&10초방어 -> 6: 2단계 안내
       lastTargetId: null,
+      lastPos: null,
+      nextAction: null,
       rafId: null,
 
       init() {
@@ -1409,6 +1417,12 @@
         $('coach-reopen')?.addEventListener('click', () => {
           Sound.click();
           this.enable();
+        });
+        $('coach-next')?.addEventListener('click', () => {
+          Sound.click();
+          if (typeof this.nextAction === 'function') {
+            this.nextAction();
+          }
         });
         window.addEventListener('resize', () => this.sync());
         window.addEventListener('scroll', () => this.sync(), true);
@@ -1436,14 +1450,33 @@
         $('coach-bubble')?.classList.add('hidden');
       },
 
-      onAdShown() {
-        this.seenYesAd = true;
-        this.adSpotUntil = Date.now() + 3600;
+      /** 쿠키 배너에서 동의/거부를 선택했을 때 호출 (단방향 전진) */
+      onConsentChosen(choice) {
+        if (choice === 'yes' && this.step < 2) {
+          this.step = 2;
+        } else if (choice === 'no' && this.step < 5) {
+          this.step = 5;
+        }
         this.sync(true);
-        setTimeout(() => this.sync(true), 3650);
       },
 
-      /** 현재 시뮬레이션 상태에서 안내할 단계 계산 */
+      /** 맞춤 광고가 떴을 때 호출 (3단계 고정 — 타이머로 자동 넘어가지 않음) */
+      onAdShown() {
+        if (this.step < 3) {
+          this.step = 3;
+        }
+        this.sync(true);
+      },
+
+      /** 상단 [처음부터 다시 시작]을 눌렀을 때 호출 */
+      onReset() {
+        if (this.step >= 3 && this.step < 5) {
+          this.step = 5;
+        }
+        this.sync(true);
+      },
+
+      /** 현재 시뮬레이션 상태에서 안내할 단계 계산 (절대 이전 단계로 되돌아가지 않음) */
       getStep() {
         if (MissionGuide.isOpen || !this.enabled || state.patched) return null;
 
@@ -1454,7 +1487,9 @@
             pos: 'bottom',
             step: '🕵️ 탐정 가이드 · 보너스',
             title: '🛠️ 직접 방패 코드 조립하러 가기!',
-            desc: '상품에 마우스를 올리면 블록이 반짝여요! 원리를 확인했다면 <b class="text-amber-300">[🛠️ 3단계: 방패 만들기]</b> 탭을 눌러 보세요!',
+            desc: '상품에 마우스를 올리면 블록이 반짝여요! 원리를 확인했다면 상단의 <b class="text-amber-300">[🛠️ 3단계: 방패 만들기]</b> 탭을 눌러 보세요!',
+            nextLabel: '🛠️ 3단계: 방패 만들기로 이동 ▶',
+            onNext: () => Sim.setMode(3),
           };
         }
         if (state.mode === 3) {
@@ -1464,89 +1499,113 @@
             step: '🕵️ 탐정 가이드 · 최종 미션',
             title: '🧑‍💻 빈칸 3개를 골라 방패 완성하기!',
             desc: '위 블록의 <b class="text-amber-300">빈칸(▼) 3개</b>를 알맞게 고른 뒤 <b class="text-emerald-300">[🚀 방패 코드 적용하기]</b> 버튼을 눌러 보세요!',
+            nextLabel: '👍 알겠어요 (스스로 해볼게요)',
+            onNext: () => this.disable(),
           };
         }
 
-        // 1단계: 쿠키 배너 선택 전
-        if (state.consent === null) {
-          if (!this.seenYesAd) {
-            return {
-              targetId: 'btn-consent-yes',
-              pos: 'top',
-              step: '🕵️ 탐정 가이드 1 / 5',
-              title: '👇 먼저 [동의(Yes)] 버튼을 눌러보세요!',
-              desc: '우리가 평소 무심코 누르는 노란색 <b class="text-amber-300">[Yes, I accept (동의)]</b> 버튼을 눌러 쇼핑몰에 입장해 볼까요?',
-            };
-          }
+        // 차단 미션 10초 달성 시 자동으로 6단계(완료) 진입
+        if (state.blockedGoalDone && this.step < 6) {
+          this.step = 6;
+        }
+
+        // [STEP 1] 쿠키 배너에서 동의(Yes) 누르기
+        if (this.step === 1) {
           return {
-            targetId: 'btn-consent-no',
+            targetId: 'btn-consent-yes',
             pos: 'top',
-            step: '🕵️ 탐정 가이드 4 / 5',
-            title: '👇 이번엔 [거부(No)] 버튼을 눌러보세요!',
-            desc: '방금과 어떻게 달라지는지 비교하기 위해 이번엔 아래의 <b class="text-emerald-300">[No, thank you (거부)]</b>를 골라 보세요!',
+            step: '🕵️ 탐정 가이드 1 / 5',
+            title: '👇 먼저 [동의(Yes)] 버튼을 눌러보세요!',
+            desc: '우리가 평소 무심코 누르는 노란색 <b class="text-amber-300">[Yes, I accept (동의)]</b> 버튼을 눌러 쇼핑몰에 입장해 볼까요?',
           };
         }
 
-        // 시나리오 A: 동의(추적 ON) 상태
-        const anyProfiled = Object.keys(state.profiled).length > 0;
-        if (isTracking()) {
-          if (!anyProfiled && !state.hoverId) {
-            return {
-              targetId: 'card-game',
-              pos: 'bottom',
-              step: '🕵️ 탐정 가이드 2 / 5',
-              title: '👆 상품 카드 위에 마우스만 올려두세요!',
-              desc: '클릭하지 말고, <b class="text-amber-300">🎮 휴대용 게임기</b> 카드 위에 마우스 커서를 <b class="text-cyan-300">5초 동안 가만히</b> 올려두세요!',
-            };
-          }
-          if (!anyProfiled && state.hoverId) {
-            const p = getProduct(state.hoverId);
-            const score = p ? state.interest[p.id] : 0;
-            return {
-              targetId: 'db-card',
-              pos: 'top',
-              step: '🕵️ 탐정 가이드 3 / 5',
-              title: '👀 마우스를 그대로 두고 오른쪽 서버를 보세요!',
-              desc: `<b class="text-rose-300">1초마다</b> 내 행동이 서버 표에 기록되고 아래 <b class="text-amber-300">AI 관심도(${score}%)</b>가 올라가고 있어요!`,
-            };
-          }
-          // 맞춤 광고가 도착한 뒤
-          if (Date.now() < this.adSpotUntil && $('push-ad')?.classList.contains('show')) {
-            return {
-              targetId: 'push-ad',
-              pos: 'bottom',
-              step: '🕵️ 탐정 가이드 3 / 5 완료!',
-              title: '🎯 5초 만에 맞춤 타깃 광고 도착!',
-              desc: '글을 한 줄도 안 썼는데 <b class="text-amber-300">마우스만 올려둔 시간</b>으로 내 속마음을 알아채고 할인 쿠폰을 보냈어요!',
-            };
-          }
+        // [STEP 2] 상품 구경 + 오른쪽 서버 관찰 (말풍선 위치 고정! 마우스를 움직여도 절대 튀지 않음)
+        if (this.step === 2) {
+          const maxScore = Math.max(0, ...Object.values(state.interest));
+          return {
+            targetId: 'product-grid',
+            pos: 'top',
+            step: '🕵️ 탐정 가이드 2 / 5',
+            title: '🖱️ 상품 위에 마우스를 5초 동안 올려두세요!',
+            desc: `클릭하지 말고 마음에 드는 상품 위에 마우스를 올린 채, <b class="text-rose-300">오른쪽 서버 표와 그래프</b>가 올라가는 모습을 관찰해 보세요!<br><span class="mt-1.5 inline-block rounded-lg bg-slate-800 px-2.5 py-1 text-[13px] font-extrabold text-amber-300 ring-1 ring-amber-400/40">⏱️ 현재 최고 AI 관심도: ${maxScore}% / 100%</span>`,
+          };
+        }
+
+        // [STEP 3] 5초 뒤 맞춤 광고 도착 확인 (다 읽고 버튼을 눌러야 다음 단계로 이동)
+        if (this.step === 3) {
+          return {
+            targetId: 'push-ad',
+            pos: 'bottom',
+            step: '🕵️ 탐정 가이드 3 / 5',
+            title: '🎯 5초 만에 맞춤 타깃 광고가 도착했어요!',
+            desc: '글을 한 줄도 쓰지 않았는데, <b class="text-amber-300">마우스가 머무른 시간(수동적 발자국)</b>만으로 내 속마음을 알아채고 50% 할인 쿠폰을 보냈어요!',
+            nextLabel: '다 읽었어요 · 다음 단계 ▶',
+            onNext: () => {
+              Phone.hideAd();
+              this.step = 4;
+              this.sync(true);
+            },
+          };
+        }
+
+        // [STEP 4] [처음부터 다시 시작] 눌러 거부(No)와 비교하기
+        if (this.step === 4) {
           return {
             targetId: 'btn-reset',
             pos: 'bottom',
             step: '🕵️ 탐정 가이드 4 / 5',
-            title: '👆 [처음부터 다시 시작]을 눌러 비교해 볼까요?',
-            desc: '이제 우측 상단의 <b class="text-amber-300">[시뮬레이션 처음부터 다시 시작]</b>을 누르고, 이번엔 쿠키를 <b class="text-emerald-300">거부(No)</b>해 보세요!',
+            title: '🔄 이제 쿠키를 [거부]했을 때와 비교해 볼까요?',
+            desc: '우측 상단의 <b class="text-amber-300">[시뮬레이션 처음부터 다시 시작]</b> 버튼을 누르거나 아래 버튼을 눌러, 이번엔 쿠키를 <b class="text-emerald-300">거부(No)</b>해 보세요!',
+            nextLabel: '🔄 처음부터 다시 시작하기 ▶',
+            onNext: () => {
+              this.step = 5;
+              Sim.reset();
+            },
           };
         }
 
-        // 시나리오 B: 거부(사전 차단 Opt-out) 상태
-        if (!state.blockedGoalDone) {
+        // [STEP 5] 쿠키 배너에서 거부(No) 선택 후 10초 동안 구경하기
+        if (this.step === 5) {
+          if (state.consent === null) {
+            return {
+              targetId: 'btn-consent-no',
+              pos: 'top',
+              step: '🕵️ 탐정 가이드 4 / 5',
+              title: '🛡️ 이번엔 아래의 [거부(No)] 버튼을 눌러보세요!',
+              desc: '쿠키 수집을 거절하는 <b class="text-emerald-300">[No, thank you (거부)]</b> 버튼을 누르면 내 발자국이 어떻게 될까요?',
+            };
+          }
+          if (isTracking()) {
+            return {
+              targetId: 'btn-reset',
+              pos: 'bottom',
+              step: '🕵️ 탐정 가이드 4 / 5',
+              title: '앗, 다시 [동의]를 눌렀어요! [거부]로 다시 해볼까요?',
+              desc: '비교 실험을 위해 아래 버튼을 눌러 다시 시작한 뒤, 이번엔 <b class="text-emerald-300">[No, thank you (거부)]</b>를 골라 보세요!',
+              nextLabel: '🔄 다시 시작해서 [거부] 고르기 ▶',
+              onNext: () => Sim.reset(),
+            };
+          }
           const sec = (state.blockedTenths / 10).toFixed(1);
           return {
-            targetId: 'card-game',
-            pos: 'bottom',
+            targetId: 'product-grid',
+            pos: 'top',
             step: '🕵️ 탐정 가이드 4 / 5',
-            title: '🛡️ 상품 카드 위에 마우스를 10초 올려보세요!',
-            desc: `거부(차단) 상태에서는 서버에 기록이 남을까요? 마우스를 올려 확인해 보세요! (<b class="text-emerald-300">${sec}초 / 10.0초 · 수집 0건</b>)`,
+            title: '🛡️ 상품 카드 위에 마우스를 10초 동안 올려보세요!',
+            desc: `거부(사전 차단) 상태에서는 오른쪽 서버 표에 기록이 남을까요? 상품 위에 마우스를 올려 확인해 보세요!<br><span class="mt-1.5 inline-block rounded-lg bg-slate-800 px-2.5 py-1 text-[13px] font-extrabold text-emerald-300 ring-1 ring-emerald-400/40">🛡️ 구경한 시간: ${sec}초 / 10.0초 · 서버 수집 0건</span>`,
           };
         }
 
+        // [STEP 6] 10초 방어 성공 -> 2단계 원리 파헤치기 안내
         return {
           targetId: 'tab-mode-2',
           pos: 'bottom',
-          step: '🕵️ 탐정 가이드 5 / 5',
-          title: '🎉 방어 성공! 이제 [2단계: 원리 파헤치기]를 눌러보세요!',
-          desc: '10초 내내 구경해도 <b class="text-emerald-300">서버 수집 0건!</b> 상단의 <b class="text-amber-300">[🧩 2단계: 원리 파헤치기]</b> 탭을 눌러 비밀 코드를 확인해 볼까요?',
+          step: '🕵️ 탐정 가이드 5 / 5 완료!',
+          title: '🎉 사전 방어 성공! 이제 숨겨진 원리를 파헤쳐 볼까요?',
+          desc: '10초 내내 구경해도 <b class="text-emerald-300">서버 수집 0건!</b> 상단의 <b class="text-amber-300">[🧩 2단계: 원리 파헤치기]</b> 탭을 눌러 프로그램 속 블록 코드를 확인해 보세요!',
+          nextLabel: '🧩 2단계: 원리 파헤치기 열기 ▶',
+          onNext: () => Sim.setMode(2),
         };
       },
 
@@ -1570,15 +1629,31 @@
         $('coach-title').innerHTML = info.title;
         $('coach-desc').innerHTML = info.desc;
 
+        const nextBtn = $('coach-next');
+        if (nextBtn) {
+          if (info.nextLabel && typeof info.onNext === 'function') {
+            nextBtn.textContent = info.nextLabel;
+            this.nextAction = info.onNext;
+            nextBtn.classList.remove('hidden');
+            nextBtn.classList.add('flex');
+          } else {
+            this.nextAction = null;
+            nextBtn.classList.add('hidden');
+            nextBtn.classList.remove('flex');
+          }
+        }
+
         $('coach-ring').classList.remove('hidden');
         $('coach-bubble').classList.remove('hidden');
 
+        const targetChanged = this.lastTargetId !== info.targetId || this.lastPos !== info.pos;
         this.place(target, info.pos);
 
-        if (animateTrack || this.lastTargetId !== info.targetId) {
+        if (animateTrack || targetChanged) {
           this.lastTargetId = info.targetId;
+          this.lastPos = info.pos;
           cancelAnimationFrame(this.rafId);
-          const until = performance.now() + 620;
+          const until = performance.now() + 500;
           const loop = (now) => {
             const cur = this.getStep();
             if (cur && $(cur.targetId)) this.place($(cur.targetId), cur.pos);
@@ -1601,7 +1676,7 @@
         ring.style.height = `${r.height + pad * 2}px`;
 
         const bw = bubble.offsetWidth || 350;
-        const bh = bubble.offsetHeight || 120;
+        const bh = bubble.offsetHeight || 130;
         const vw = window.innerWidth;
         const vh = window.innerHeight;
         const gap = 14;
@@ -1661,6 +1736,7 @@
           Console.log('ok', '[SYSTEM] 수동적 발자국 수집 기능 OFF');
           Phone.toast('🛡️ 쿠키 거부 완료! 추적이 꺼졌어요');
         }
+        Coach.onConsentChosen(choice);
         this.refreshAll();
       },
 
@@ -1812,6 +1888,7 @@
         Console.log('sys', '[SYSTEM] 🔄 시뮬레이션을 처음부터 다시 시작합니다');
         Console.boot();
         Patch.reset();
+        Coach.onReset();
         this.refreshAll();
       },
     };
@@ -1831,7 +1908,11 @@
       $('btn-consent-no').addEventListener('click', () => Sim.chooseConsent('no'));
       $('btn-reset').addEventListener('click', () => Sim.reset());
       $('btn-clear-cookies').addEventListener('click', () => Sim.clearCookies());
-      $('push-ad').addEventListener('click', () => { Phone.hideAd(); Coach.sync(true); });
+      $('push-ad').addEventListener('click', () => {
+        Phone.hideAd();
+        if (Coach.step === 3) Coach.step = 4;
+        Coach.sync(true);
+      });
       document.querySelectorAll('.mode-tab').forEach(btn => {
         btn.addEventListener('click', () => { Sound.click(); Sim.setMode(Number(btn.dataset.mode)); });
       });
