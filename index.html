@@ -183,6 +183,61 @@
     .glow-on { outline-color: #fde047 !important; box-shadow: 0 0 22px rgba(253, 224, 71, .5); }
     .deny-on { outline-color: #f43f5e !important; box-shadow: 0 0 22px rgba(244, 63, 94, .45); }
     .dimmed { opacity: .35; }
+
+    /* ===================== 3단계 엔트리 드래그 앤 드롭 조립소 ===================== */
+    .palette-blk {
+      cursor: grab;
+      user-select: none;
+      touch-action: none;
+    }
+    .palette-blk:hover {
+      filter: brightness(1.06);
+      transform: translateY(-1px);
+    }
+    .palette-blk:active {
+      cursor: grabbing;
+    }
+    .palette-blk.used-blk {
+      opacity: .32;
+      filter: grayscale(.5);
+      pointer-events: none;
+    }
+    .drop-zone {
+      border: 2px dashed rgba(148, 163, 184, .45);
+      background: rgba(15, 23, 42, .45);
+      border-radius: .65rem;
+      transition: border-color .18s ease, background-color .18s ease, box-shadow .18s ease, transform .18s ease;
+    }
+    .drop-zone.drop-over {
+      border-color: #facc15 !important;
+      background: rgba(250, 204, 21, .16) !important;
+      box-shadow: 0 0 20px rgba(250, 204, 21, .45);
+      transform: scale(1.01);
+    }
+    .placed-blk {
+      cursor: grab;
+      user-select: none;
+      touch-action: none;
+    }
+    .placed-blk:active {
+      cursor: grabbing;
+    }
+    .blk-wrong {
+      outline: 3px solid #f43f5e !important;
+      box-shadow: 0 0 22px rgba(244, 63, 94, .65) !important;
+    }
+    .blk-right {
+      outline: 3px solid #22c55e !important;
+      box-shadow: 0 0 22px rgba(34, 197, 94, .6) !important;
+    }
+    #drag-ghost {
+      position: fixed;
+      z-index: 9999;
+      pointer-events: none;
+      transform: translate(-50%, -50%) scale(1.05) rotate(-1.5deg);
+      filter: drop-shadow(0 18px 28px rgba(0, 0, 0, .6));
+      transition: none;
+    }
     @keyframes blockFlash {
       0% { box-shadow: 0 3px 0 rgba(0, 0, 0, .28), 0 0 0 0 rgba(253, 224, 71, 0); transform: scale(1); }
       35% { box-shadow: 0 3px 0 rgba(0, 0, 0, .28), 0 0 0 4px #fde047, 0 0 26px 6px rgba(253, 224, 71, .9); transform: scale(1.04); }
@@ -525,7 +580,7 @@
       </div>
 
       <!-- ===================== 하단 슬라이드 패널 (2·3단계) ===================== -->
-      <div id="drawer" class="drawer glass absolute inset-x-0 bottom-0 z-30 flex h-[72%] flex-col rounded-t-3xl border-t border-slate-600/70 shadow-[0_-20px_50px_-10px_rgba(0,0,0,.6)]">
+      <div id="drawer" class="drawer glass absolute inset-x-0 bottom-0 z-30 flex h-[76%] flex-col rounded-t-3xl border-t border-slate-600/70 shadow-[0_-20px_50px_-10px_rgba(0,0,0,.6)]">
         <div id="drawer-handle" class="flex h-[3.25rem] shrink-0 cursor-pointer items-center justify-between border-b border-slate-700/70 px-5">
           <div class="flex min-w-0 items-center gap-2">
             <span id="drawer-icon" class="text-[20px]">🧩</span>
@@ -604,63 +659,83 @@
             </div>
           </div>
 
-          <!-- ---------- 3단계: 방패 만들기 ---------- -->
-          <div id="panel-patch" class="hidden grid-cols-1 gap-4 xl:grid-cols-5">
-            <div id="patch-editor" class="xl:col-span-3">
-              <p class="mb-2 text-[13px] font-semibold text-slate-300">🧑‍💻 빈칸(▼)을 골라 <b class="text-emerald-300">발자국 막는 방패 코드</b>를 완성해 보세요!</p>
-              <div class="flex flex-col items-start gap-1">
-                <div class="blk blk-hat" style="--c:#FFBF00">🏁 시작했을 때</div>
-                <div class="blk" style="--c:#9966FF">📢 <span class="slot">"행태정보 수집에 동의하십니까?"</span> 배너 띄우기</div>
-                <div id="pt-if" class="c-wrap" style="--c:#FFAB19">
-                  <div class="c-head">만일
-                    <span class="hex" style="--h:#59C059">사용자 선택 ==
-                      <select id="sel-choice" class="blk-select" aria-label="사용자 선택">
-                        <option value="">선택하세요</option>
-                        <option value="yes">동의(Yes, I accept)</option>
-                        <option value="no">거부(No, thank you)</option>
-                      </select>
-                    </span> 라면
-                  </div>
-                  <div class="c-body">
-                    <div id="pt-switch" class="blk" style="--c:#FF8C1A">
-                      <span class="var">추적 차단 스위치</span> 변수를
-                      <select id="sel-switch" class="blk-select" aria-label="추적 차단 스위치 값">
-                        <option value="">선택하세요</option>
-                        <option value="off">꺼짐(OFF)</option>
-                        <option value="on">켜짐(ON)</option>
-                      </select> 으로 정하기
-                    </div>
-                    <div id="pt-timer" class="blk" style="--c:#5CB1D6">⏱️ 초시계 멈추기</div>
-                    <div id="pt-list" class="blk" style="--c:#FF661A">
-                      <span class="var">체류시간 쿠키 리스트</span>의
-                      <select id="sel-list" class="blk-select" aria-label="쿠키 리스트 동작">
-                        <option value="">선택하세요</option>
-                        <option value="add">항목 추가하기</option>
-                        <option value="first">1번째 항목 보기</option>
-                        <option value="clear">모든 항목 삭제하기</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div class="c-foot"></div>
+          <!-- ---------- 3단계: 방패 만들기 (엔트리 스타일 드래그 앤 드롭 조립소) ---------- -->
+          <div id="panel-patch" class="hidden grid-cols-1 gap-3.5 xl:grid-cols-12">
+            <!-- 좌측 5칸: 엔트리 블록 꾸러미 (팔레트) -->
+            <div id="patch-palette" class="flex flex-col rounded-2xl bg-slate-900/90 p-3.5 ring-1 ring-slate-700 xl:col-span-5">
+              <div class="mb-2.5 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="text-[16px]">🧰</span>
+                  <h3 class="text-[14px] font-extrabold text-white">엔트리 블록 꾸러미</h3>
+                </div>
+                <span class="rounded-full bg-amber-400/15 px-2.5 py-0.5 text-[11px] font-extrabold text-amber-300 ring-1 ring-amber-400/30">
+                  ✋ 마우스로 끌어서(드래그) 옮기세요!
+                </span>
+              </div>
+
+              <div class="space-y-3">
+                <!-- 카테고리 1: 흐름 (조건 블록) -->
+                <div>
+                  <p class="mb-1.5 flex items-center gap-1.5 text-[11.5px] font-extrabold text-amber-300">
+                    <span class="h-2.5 w-2.5 rounded-full bg-[#FFAB19]"></span> [흐름] 언제 방패를 작동시킬까요? (조건 블록 1개 선택)
+                  </p>
+                  <div id="palette-cond-list" class="flex flex-col items-start gap-2"></div>
+                </div>
+
+                <!-- 카테고리 2: 자료(변수·리스트) & 초시계 -->
+                <div>
+                  <p class="mb-1.5 flex items-center gap-1.5 text-[11.5px] font-extrabold text-cyan-300">
+                    <span class="h-2.5 w-2.5 rounded-full bg-[#FF8C1A]"></span> [자료 · 움직임] 조건이 맞을 때 실행할 블록 (3개 선택)
+                  </p>
+                  <div id="palette-cmd-list" class="flex flex-col items-start gap-2"></div>
                 </div>
               </div>
-              <button id="btn-apply-patch" class="mt-4 flex items-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 px-5 py-3 text-[15px] font-extrabold text-white shadow-lg shadow-emerald-500/30 transition hover:brightness-110 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60">
-                🚀 방패 코드 적용하기
-              </button>
             </div>
-            <div class="space-y-3 xl:col-span-2">
-              <div class="rounded-2xl bg-slate-800/80 p-3 ring-1 ring-slate-700">
-                <p class="text-[13px] font-extrabold text-slate-200">🎯 미션</p>
-                <p class="mt-1 text-[13px] leading-relaxed text-slate-300">사용자가 <b class="text-emerald-300">거부</b>하면 발자국 수집이 <b>완전히</b> 멈추도록 빈칸 3개를 채우세요.</p>
-                <ul class="mt-2 space-y-1 text-[13px]">
-                  <li id="chk-choice" class="text-slate-400">⬜ ① 언제 막을까? (사용자 선택)</li>
-                  <li id="chk-switch" class="text-slate-400">⬜ ② 차단 스위치를 어떻게?</li>
-                  <li id="chk-list" class="text-slate-400">⬜ ③ 이미 쌓인 발자국은?</li>
+
+            <!-- 중앙 4칸: 블록 조립소 (작업 공간) -->
+            <div id="patch-editor" class="flex flex-col rounded-2xl bg-slate-800/75 p-3.5 ring-1 ring-slate-600 xl:col-span-4">
+              <div class="mb-2.5 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="text-[16px]">🧩</span>
+                  <h3 class="text-[14px] font-extrabold text-white">블록 조립소</h3>
+                </div>
+                <button id="btn-clear-patch" type="button" class="flex items-center gap-1 rounded-lg bg-slate-700 px-2.5 py-1 text-[11.5px] font-bold text-slate-200 transition hover:bg-slate-600 active:scale-95">
+                  🔄 블록 모두 비우기
+                </button>
+              </div>
+              <p class="mb-2.5 text-[12px] font-semibold text-slate-300">
+                아래 <b class="text-amber-300">[🏁 시작했을 때]</b> 밑의 빈 공간으로 왼쪽 블록을 직접 <b class="text-emerald-300">드래그 앤 드롭</b>해서 조립하세요!
+              </p>
+
+              <!-- 실제 블록이 조립되는 캔버스 -->
+              <div id="patch-workspace" class="flex min-h-[250px] flex-1 flex-col items-start gap-1 rounded-xl bg-slate-950/70 p-3.5 ring-1 ring-slate-700/80">
+                <div class="blk blk-hat" style="--c:#FFBF00">🏁 시작했을 때</div>
+                <div id="patch-assembled-root" class="w-full"></div>
+              </div>
+            </div>
+
+            <!-- 우측 3칸: 미션 체크리스트 & 실행 버튼 -->
+            <div class="flex flex-col justify-between space-y-3 xl:col-span-3">
+              <div class="rounded-2xl bg-slate-800/80 p-3.5 ring-1 ring-slate-700">
+                <p class="text-[13.5px] font-extrabold text-slate-200">🎯 방패 조립 미션</p>
+                <p class="mt-1 text-[12.5px] leading-relaxed text-slate-300">
+                  사용자가 <b class="text-emerald-300">거부(No)</b>했을 때 발자국 수집이 완전히 멈추고 기존 기록도 지워지도록 <b>4개의 블록</b>을 조립하세요!
+                </p>
+                <ul class="mt-2.5 space-y-1.5 text-[12.5px]">
+                  <li id="chk-cond" class="text-slate-400">⬜ ① [만일 ~ 라면] 조건 블록 끼우기</li>
+                  <li id="chk-switch" class="text-slate-400">⬜ ② [추적 차단 스위치] 변수 블록</li>
+                  <li id="chk-timer" class="text-slate-400">⬜ ③ [초시계 멈추기] 블록</li>
+                  <li id="chk-list" class="text-slate-400">⬜ ④ [쿠키 리스트] 삭제 블록</li>
                 </ul>
               </div>
-              <div id="patch-feedback" class="rounded-2xl bg-slate-800/60 p-3 text-[13px] leading-relaxed text-slate-300 ring-1 ring-slate-700">
-                🙋 빈칸을 모두 고른 뒤 <b>[🚀 방패 코드 적용하기]</b>를 눌러 보세요.
+
+              <div id="patch-feedback" class="rounded-2xl bg-slate-800/60 p-3 text-[12.5px] leading-relaxed text-slate-300 ring-1 ring-slate-700">
+                🧲 왼쪽 <b>[블록 꾸러미]</b>에서 필요한 블록을 마우스로 끌어다 가운데 <b>[블록 조립소]</b>에 놓아 보세요!
               </div>
+
+              <button id="btn-apply-patch" class="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 px-5 py-3.5 text-[15px] font-extrabold text-white shadow-lg shadow-emerald-500/30 transition hover:brightness-110 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60">
+                🚀 방패 코드 적용하기
+              </button>
             </div>
           </div>
         </div>
@@ -875,6 +950,7 @@
       ding() { this.tone(1318, 0, 0.25); this.tone(1760, 0.12, 0.4); },
       alarm() { this.tone(880, 0, 0.12, 'square', 0.05); this.tone(660, 0.14, 0.12, 'square', 0.05); },
       click() { this.tone(900, 0, 0.05, 'square', 0.03); },
+      snap() { this.tone(520, 0, 0.04, 'triangle', 0.12); this.tone(1040, 0.03, 0.07, 'sine', 0.14); },
       error() { this.tone(220, 0, 0.18, 'sawtooth', 0.07); this.tone(170, 0.18, 0.28, 'sawtooth', 0.07); },
       success() {
         [523, 659, 784, 1047].forEach((f, i) => this.tone(f, i * 0.12, 0.3, 'triangle', 0.18));
@@ -1303,68 +1379,430 @@
     };
 
     /* =========================================================
-     * 9. 3단계: 방어 패치(Modify) 패널
+     * 9. 3단계: 방어 패치(Modify) 패널 — 엔트리 스타일 드래그 앤 드롭 전용
+     *  - 원클릭 자동 삽입 없이 오직 드래그 앤 드롭(끌어다 놓기)으로만 조립/해제
      * ========================================================= */
     const Patch = {
-      ANSWERS: { 'sel-choice': 'no', 'sel-switch': 'on', 'sel-list': 'clear' },
-      CHECKS: { 'sel-choice': 'chk-choice', 'sel-switch': 'chk-switch', 'sel-list': 'chk-list' },
-      LABELS: {
-        'sel-choice': '① 언제 막을까? (사용자 선택)',
-        'sel-switch': '② 차단 스위치를 어떻게?',
-        'sel-list': '③ 이미 쌓인 발자국은?',
-      },
-      HINTS: {
-        'sel-choice': '🤔 ① 발자국 수집을 막아야 하는 건 사용자가 <b>동의</b>했을 때일까요, <b>거부</b>했을 때일까요?',
-        'sel-switch': '🤔 ② <b>추적 \'차단\'</b> 스위치예요. 추적을 막으려면 이 스위치를 어떻게 해야 할까요?',
-        'sel-list': '🤔 ③ 이미 쌓여 있는 발자국까지 <b>깨끗하게</b> 없애려면 어떤 명령이 필요할까요?',
+      BLOCKS: [
+        {
+          id: 'cond_no',
+          type: 'cond',
+          role: 'cond',
+          color: '#FFAB19',
+          ok: true,
+          html: '만일 <span class="hex" style="--h:#59C059">사용자 선택 == <span class="slot">"거부(No)"</span></span> 라면',
+        },
+        {
+          id: 'cond_yes',
+          type: 'cond',
+          role: 'cond',
+          color: '#FFAB19',
+          ok: false,
+          html: '만일 <span class="hex" style="--h:#59C059">사용자 선택 == <span class="slot">"동의(Yes)"</span></span> 라면',
+        },
+        {
+          id: 'var_on',
+          type: 'cmd',
+          role: 'switch',
+          color: '#FF8C1A',
+          ok: true,
+          html: '<span class="var">추적 차단 스위치</span> 변수를 <span class="slot">켜짐(ON)</span> 으로 정하기',
+        },
+        {
+          id: 'var_off',
+          type: 'cmd',
+          role: 'switch',
+          color: '#FF8C1A',
+          ok: false,
+          html: '<span class="var">추적 차단 스위치</span> 변수를 <span class="slot">꺼짐(OFF)</span> 으로 정하기',
+        },
+        {
+          id: 'timer_stop',
+          type: 'cmd',
+          role: 'timer',
+          color: '#5CB1D6',
+          ok: true,
+          html: '⏱️ <span class="slot">체류시간 초시계</span> 멈추기',
+        },
+        {
+          id: 'list_clear',
+          type: 'cmd',
+          role: 'list',
+          color: '#FF661A',
+          ok: true,
+          html: '<span class="var">체류시간 쿠키 리스트</span> 의 <span class="slot">모든 항목 삭제하기</span>',
+        },
+        {
+          id: 'list_add',
+          type: 'cmd',
+          role: 'list',
+          color: '#FF661A',
+          ok: false,
+          html: '<span class="var">체류시간 쿠키 리스트</span> 에 <span class="slot">체류 데이터 추가하기</span>',
+        },
+      ],
+
+      placedCond: null,   // 'cond_no' | 'cond_yes' | null
+      placedInner: [],    // ['var_on', 'timer_stop', 'list_clear', ...]
+      drag: null,
+
+      getBlock(id) {
+        return this.BLOCKS.find(b => b.id === id) || null;
       },
 
       init() {
-        Object.keys(this.ANSWERS).forEach(id => {
-          $(id).addEventListener('change', (e) => {
-            Sound.click();
-            e.target.classList.remove('wrong', 'right');
-          });
+        this.renderPalette();
+        this.renderWorkspace();
+        $('btn-apply-patch')?.addEventListener('click', () => this.apply());
+        $('btn-clear-patch')?.addEventListener('click', () => {
+          if (state.patched) return;
+          Sound.click();
+          this.placedCond = null;
+          this.placedInner = [];
+          this.renderPalette();
+          this.renderWorkspace();
+          this.updateChecklist(false);
+          $('patch-feedback').className = 'rounded-2xl bg-slate-800/60 p-3 text-[12.5px] leading-relaxed text-slate-300 ring-1 ring-slate-700';
+          $('patch-feedback').innerHTML = '🔄 조립소를 모두 비웠어요! 왼쪽 <b>[블록 꾸러미]</b>에서 블록을 마우스로 끌어다 놓아 보세요.';
         });
-        $('btn-apply-patch').addEventListener('click', () => this.apply());
+
+        window.addEventListener('pointermove', (e) => this.onPointerMove(e));
+        window.addEventListener('pointerup', (e) => this.onPointerUp(e));
+        window.addEventListener('pointercancel', (e) => this.onPointerUp(e));
+      },
+
+      isUsed(id) {
+        return this.placedCond === id || this.placedInner.includes(id);
+      },
+
+      renderPalette() {
+        const condList = $('palette-cond-list');
+        const cmdList = $('palette-cmd-list');
+        if (!condList || !cmdList) return;
+
+        condList.innerHTML = this.BLOCKS.filter(b => b.type === 'cond').map(b => {
+          const used = this.isUsed(b.id) || state.patched;
+          return `
+            <div data-block-id="${b.id}" data-drag-source="palette" class="palette-blk c-wrap ${used ? 'used-blk' : ''}" style="--c:${b.color}">
+              <div class="c-head">${b.html}</div>
+              <div class="c-body" style="min-height:12px; padding:2px 0;"></div>
+              <div class="c-foot"></div>
+            </div>`;
+        }).join('');
+
+        cmdList.innerHTML = this.BLOCKS.filter(b => b.type === 'cmd').map(b => {
+          const used = this.isUsed(b.id) || state.patched;
+          return `
+            <div data-block-id="${b.id}" data-drag-source="palette" class="palette-blk blk ${used ? 'used-blk' : ''}" style="--c:${b.color}">
+              ${b.html}
+            </div>`;
+        }).join('');
+
+        document.querySelectorAll('#patch-palette [data-block-id]').forEach(el => {
+          el.addEventListener('pointerdown', (e) => this.onPointerDown(e, el.dataset.blockId, 'palette'));
+        });
+      },
+
+      renderWorkspace() {
+        const root = $('patch-assembled-root');
+        if (!root) return;
+
+        const condBlk = this.getBlock(this.placedCond);
+        const innerHtml = this.placedInner.map(id => {
+          const b = this.getBlock(id);
+          if (!b) return '';
+          return `
+            <div id="placed-${b.id}" data-block-id="${b.id}" data-drag-source="workspace" class="placed-blk blk" style="--c:${b.color}" title="바깥(블록 꾸러미)으로 끌어다 놓으면 빠져요">
+              ${b.html}
+            </div>`;
+        }).join('');
+
+        const innerDropHint = state.patched ? '' : `
+          <div id="drop-inner" class="drop-zone mt-1 flex min-h-[52px] w-full items-center justify-center px-3 py-2.5 text-center text-[12px] font-bold text-slate-300">
+            ${this.placedInner.length === 0
+              ? '🧲 [2단계] 이 안쪽에 실행할 블록(변수·초시계·리스트) 3개를 끌어다 놓으세요!'
+              : `➕ 추가로 끌어다 놓기 (현재 ${this.placedInner.length}개 · 빼려면 왼쪽 꾸러미로 드래그)`}
+          </div>`;
+
+        if (!condBlk) {
+          root.innerHTML = `
+            <div class="flex w-full flex-col items-stretch">
+              <div id="drop-cond" class="drop-zone flex min-h-[54px] w-full items-center justify-center px-3 py-2.5 text-center text-[12.5px] font-extrabold text-amber-300">
+                🧲 [1단계] 여기에 노란색 [만일 ~ 라면] 조건 블록을 끌어다 놓으세요!
+              </div>
+              <div class="ml-1 flex flex-col items-start gap-1.5 border-l-[14px] border-dashed border-amber-500/35 py-2 pl-2.5">
+                ${innerHtml}
+                ${innerDropHint}
+              </div>
+              <div class="h-3.5 w-28 rounded-b-lg border-2 border-dashed border-amber-500/35 bg-amber-500/10"></div>
+            </div>`;
+        } else {
+          root.innerHTML = `
+            <div id="placed-${condBlk.id}" class="c-wrap w-full" style="--c:${condBlk.color}">
+              <div id="drop-cond" data-block-id="${condBlk.id}" data-drag-source="workspace" class="placed-blk c-head cursor-grab" title="다른 조건 블록을 덮어쓰거나 왼쪽 꾸러미로 끌어서 뺄 수 있어요">
+                ${condBlk.html}
+              </div>
+              <div class="c-body w-full pr-1">
+                ${innerHtml}
+                ${innerDropHint}
+              </div>
+              <div class="c-foot"></div>
+            </div>`;
+        }
+
+        if (!state.patched) {
+          document.querySelectorAll('#patch-workspace [data-drag-source="workspace"]').forEach(el => {
+            el.addEventListener('pointerdown', (e) => {
+              e.stopPropagation();
+              this.onPointerDown(e, el.dataset.blockId, 'workspace');
+            });
+          });
+        }
+      },
+
+      onPointerDown(e, blockId, source) {
+        if (state.patched || e.button !== 0) return;
+        const blk = this.getBlock(blockId);
+        if (!blk) return;
+        if (source === 'palette' && this.isUsed(blockId)) return;
+
+        e.preventDefault();
+        Sound.get();
+        this.drag = {
+          blockId,
+          blk,
+          source,
+          startX: e.clientX,
+          startY: e.clientY,
+          moved: false,
+          ghost: null,
+        };
+      },
+
+      onPointerMove(e) {
+        if (!this.drag) return;
+        const dx = e.clientX - this.drag.startX;
+        const dy = e.clientY - this.drag.startY;
+
+        if (!this.drag.moved && Math.hypot(dx, dy) > 6) {
+          this.drag.moved = true;
+          const g = document.createElement('div');
+          g.id = 'drag-ghost';
+          if (this.drag.blk.type === 'cond') {
+            g.innerHTML = `
+              <div class="c-wrap" style="--c:${this.drag.blk.color}">
+                <div class="c-head">${this.drag.blk.html}</div>
+                <div class="c-body" style="min-height:14px"></div>
+                <div class="c-foot"></div>
+              </div>`;
+          } else {
+            g.innerHTML = `<div class="blk" style="--c:${this.drag.blk.color}">${this.drag.blk.html}</div>`;
+          }
+          document.body.appendChild(g);
+          this.drag.ghost = g;
+        }
+
+        if (!this.drag.moved || !this.drag.ghost) return;
+
+        this.drag.ghost.style.left = `${e.clientX}px`;
+        this.drag.ghost.style.top = `${e.clientY}px`;
+
+        const overWorkspace = this.isOverWorkspace(e.clientX, e.clientY);
+        const dropCond = $('drop-cond');
+        const dropInner = $('drop-inner');
+        dropCond?.classList.toggle('drop-over', overWorkspace && this.drag.blk.type === 'cond');
+        dropInner?.classList.toggle('drop-over', overWorkspace && this.drag.blk.type === 'cmd');
+      },
+
+      isOverWorkspace(x, y) {
+        const ws = $('patch-workspace');
+        const ed = $('patch-editor');
+        const target = ws || ed;
+        if (!target) return false;
+        const r = target.getBoundingClientRect();
+        const pad = 24;
+        return x >= r.left - pad && x <= r.right + pad && y >= r.top - pad && y <= r.bottom + pad;
+      },
+
+      onPointerUp(e) {
+        if (!this.drag) return;
+        const d = this.drag;
+        this.drag = null;
+
+        if (d.ghost) d.ghost.remove();
+        $('drop-cond')?.classList.remove('drop-over');
+        $('drop-inner')?.classList.remove('drop-over');
+
+        // 단순 클릭(드래그 안 함)인 경우: 원클릭 삽입 없이 드래그 안내만 표시
+        if (!d.moved) {
+          const fb = $('patch-feedback');
+          if (fb && !state.patched) {
+            fb.className = 'rounded-2xl bg-amber-500/10 p-3 text-[12.5px] leading-relaxed text-amber-200 ring-1 ring-amber-400/40';
+            fb.innerHTML = '✋ 클릭만으로는 조립되지 않아요! 블록을 마우스로 <b>꾹 눌러서 가운데 [블록 조립소]로 끌어다 놓아(드래그 앤 드롭)</b> 보세요!';
+          }
+          return;
+        }
+
+        const inWorkspace = this.isOverWorkspace(e.clientX, e.clientY);
+
+        if (d.source === 'palette') {
+          if (!inWorkspace) return;
+          Sound.snap();
+          if (d.blk.type === 'cond') {
+            this.placedCond = d.blockId;
+          } else {
+            // 같은 역할(변수/리스트)의 다른 블록이 이미 들어있다면 교체, 아니면 추가
+            const existingIdx = this.placedInner.findIndex(id => {
+              const b = this.getBlock(id);
+              return b && b.role === d.blk.role;
+            });
+            if (existingIdx !== -1) {
+              this.placedInner[existingIdx] = d.blockId;
+            } else if (!this.placedInner.includes(d.blockId)) {
+              this.placedInner.push(d.blockId);
+            }
+          }
+          this.renderPalette();
+          this.renderWorkspace();
+          this.updateChecklist(false);
+          const placedEl = $(`placed-${d.blockId}`);
+          if (placedEl) FX.flash(placedEl);
+        } else if (d.source === 'workspace') {
+          // 조립소 밖(왼쪽 꾸러미 등)으로 드래그해서 놓으면 블록 제거
+          if (!inWorkspace) {
+            Sound.click();
+            if (this.placedCond === d.blockId) {
+              this.placedCond = null;
+            } else {
+              this.placedInner = this.placedInner.filter(id => id !== d.blockId);
+            }
+            this.renderPalette();
+            this.renderWorkspace();
+            this.updateChecklist(false);
+          }
+        }
+      },
+
+      updateChecklist(showValidation = false) {
+        const items = [
+          {
+            elId: 'chk-cond',
+            label: '① [만일 ~ 라면] 조건 블록 끼우기',
+            placed: this.placedCond !== null,
+            ok: this.placedCond === 'cond_no',
+          },
+          {
+            elId: 'chk-switch',
+            label: '② [추적 차단 스위치] 변수 블록',
+            placed: this.placedInner.some(id => this.getBlock(id)?.role === 'switch'),
+            ok: this.placedInner.includes('var_on'),
+          },
+          {
+            elId: 'chk-timer',
+            label: '③ [초시계 멈추기] 블록',
+            placed: this.placedInner.includes('timer_stop'),
+            ok: this.placedInner.includes('timer_stop'),
+          },
+          {
+            elId: 'chk-list',
+            label: '④ [쿠키 리스트] 삭제 블록',
+            placed: this.placedInner.some(id => this.getBlock(id)?.role === 'list'),
+            ok: this.placedInner.includes('list_clear'),
+          },
+        ];
+
+        items.forEach(item => {
+          const el = $(item.elId);
+          if (!el) return;
+          if (!showValidation) {
+            el.className = item.placed ? 'text-cyan-300 font-bold' : 'text-slate-400';
+            el.textContent = (item.placed ? '🧩 ' : '⬜ ') + item.label;
+          } else {
+            el.className = item.ok ? 'text-emerald-300 font-bold' : 'text-rose-300 font-bold';
+            el.textContent = (item.ok ? '✅ ' : '❌ ') + item.label;
+          }
+        });
       },
 
       reset() {
-        Object.keys(this.ANSWERS).forEach(id => {
-          $(id).value = '';
-          $(id).classList.remove('wrong', 'right');
-          $(id).disabled = false;
-          const chk = $(this.CHECKS[id]);
-          chk.className = 'text-slate-400';
-          chk.textContent = '⬜ ' + this.LABELS[id];
-        });
+        this.placedCond = null;
+        this.placedInner = [];
+        this.renderPalette();
+        this.renderWorkspace();
+        this.updateChecklist(false);
         const btn = $('btn-apply-patch');
-        btn.disabled = false;
-        btn.innerHTML = '🚀 방패 코드 적용하기';
-        $('patch-feedback').className = 'rounded-2xl bg-slate-800/60 p-3 text-[13px] leading-relaxed text-slate-300 ring-1 ring-slate-700';
-        $('patch-feedback').innerHTML = '🙋 빈칸을 모두 고른 뒤 <b>[🚀 방패 코드 적용하기]</b>를 눌러 보세요.';
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '🚀 방패 코드 적용하기';
+        }
+        const fb = $('patch-feedback');
+        if (fb) {
+          fb.className = 'rounded-2xl bg-slate-800/60 p-3 text-[12.5px] leading-relaxed text-slate-300 ring-1 ring-slate-700';
+          fb.innerHTML = '🧲 왼쪽 <b>[블록 꾸러미]</b>에서 필요한 블록을 마우스로 끌어다 가운데 <b>[블록 조립소]</b>에 놓아 보세요!';
+        }
       },
 
       apply() {
-        const wrong = [];
-        Object.entries(this.ANSWERS).forEach(([id, answer]) => {
-          const ok = $(id).value === answer;
-          $(id).classList.toggle('right', ok);
-          $(id).classList.toggle('wrong', !ok);
-          const chk = $(this.CHECKS[id]);
-          chk.className = ok ? 'text-emerald-300 font-bold' : 'text-rose-300 font-bold';
-          chk.textContent = (ok ? '✅ ' : '❌ ') + this.LABELS[id];
-          if (!ok) wrong.push(id);
-        });
+        this.updateChecklist(true);
+        const hints = [];
+
+        // 1. 조건 블록 검사
+        const condEl = this.placedCond ? $(`placed-${this.placedCond}`) : $('drop-cond');
+        if (!this.placedCond) {
+          hints.push('🤔 ① <b>[만일 ~ 라면]</b> 조건 블록이 비어 있어요! 왼쪽 꾸러미에서 끌어다 놓아 보세요.');
+          condEl?.classList.add('blk-wrong');
+        } else if (this.placedCond !== 'cond_no') {
+          hints.push('🤔 ① 발자국 수집을 막아야 하는 건 사용자가 <b>동의(Yes)</b>했을 때일까요, <b>거부(No)</b>했을 때일까요?');
+          condEl?.classList.add('blk-wrong');
+        } else {
+          condEl?.classList.remove('blk-wrong');
+          condEl?.classList.add('blk-right');
+        }
+
+        // 2. 추적 차단 스위치 변수 블록 검사
+        const switchId = this.placedInner.find(id => this.getBlock(id)?.role === 'switch');
+        const switchEl = switchId ? $(`placed-${switchId}`) : null;
+        if (!switchId) {
+          hints.push('🤔 ② <b>[추적 차단 스위치]</b> 변수 블록을 조립소 안쪽으로 끌어다 놓아 주세요!');
+        } else if (switchId !== 'var_on') {
+          hints.push('🤔 ② <b>추적 \'차단\'</b> 스위치예요! 추적을 막으려면 이 스위치를 <b>켜짐(ON)</b>으로 해야 할까요, 꺼짐(OFF)으로 해야 할까요?');
+          switchEl?.classList.add('blk-wrong');
+        } else {
+          switchEl?.classList.remove('blk-wrong');
+          switchEl?.classList.add('blk-right');
+        }
+
+        // 3. 초시계 멈추기 블록 검사
+        const timerEl = $('placed-timer_stop');
+        if (!this.placedInner.includes('timer_stop')) {
+          hints.push('🤔 ③ 마우스 체류 시간을 재는 <b>[⏱️ 체류시간 초시계 멈추기]</b> 블록도 필요해요!');
+        } else {
+          timerEl?.classList.remove('blk-wrong');
+          timerEl?.classList.add('blk-right');
+        }
+
+        // 4. 쿠키 리스트 블록 검사
+        const listId = this.placedInner.find(id => this.getBlock(id)?.role === 'list');
+        const listEl = listId ? $(`placed-${listId}`) : null;
+        if (!listId) {
+          hints.push('🤔 ④ <b>[체류시간 쿠키 리스트]</b> 블록을 조립소 안쪽으로 끌어다 놓아 주세요!');
+        } else if (listId !== 'list_clear') {
+          hints.push('🤔 ④ 이미 쌓여 있는 발자국을 없애려면 리스트에 추가해야 할까요, <b>모든 항목을 삭제</b>해야 할까요?');
+          listEl?.classList.add('blk-wrong');
+        } else {
+          listEl?.classList.remove('blk-wrong');
+          listEl?.classList.add('blk-right');
+        }
 
         const fb = $('patch-feedback');
-        if (wrong.length) {
+        if (hints.length > 0) {
           Sound.error();
           FX.shake($('patch-editor'));
-          fb.className = 'rounded-2xl bg-rose-500/10 p-3 text-[13px] leading-relaxed text-rose-100 ring-1 ring-rose-400/40';
-          fb.innerHTML = `<p class="font-extrabold">🧯 아직 방패 코드에 구멍이 ${wrong.length}개 있어요!</p>` +
-            wrong.map(id => `<p class="mt-1">${this.HINTS[id]}</p>`).join('');
-          Console.log('warn', `[SHIELD] ❌ 방패 검증 실패 — 빈칸 ${wrong.length}개를 다시 확인하세요`);
+          fb.className = 'rounded-2xl bg-rose-500/10 p-3 text-[12.5px] leading-relaxed text-rose-100 ring-1 ring-rose-400/40';
+          fb.innerHTML = `<p class="font-extrabold">🧯 아직 방패 코드에 확인이 필요한 곳이 ${hints.length}군데 있어요!</p>` +
+            hints.map(h => `<p class="mt-1">${h}</p>`).join('') +
+            `<p class="mt-1.5 text-[11.5px] text-rose-200/90">💡 잘못 넣은 블록은 마우스로 끌어서 왼쪽 꾸러미로 빼거나, 다른 블록을 끌어다 덮어쓸 수 있어요.</p>`;
+          Console.log('warn', `[SHIELD] ❌ 방패 검증 실패 — 블록 ${hints.length}개를 다시 확인하세요`);
           return;
         }
 
@@ -1372,15 +1810,18 @@
         Sound.success();
         FX.confetti();
         FX.celebrate();
-        ['pt-if', 'pt-switch', 'pt-timer', 'pt-list'].forEach((id, i) => setTimeout(() => FX.flash($(id)), i * 150));
-        Object.keys(this.ANSWERS).forEach(id => { $(id).disabled = true; });
+        const allPlacedIds = [`placed-${this.placedCond}`, ...this.placedInner.map(id => `placed-${id}`)];
+        allPlacedIds.forEach((id, i) => setTimeout(() => FX.flash($(id)), i * 150));
+
         const btn = $('btn-apply-patch');
         btn.disabled = true;
         btn.innerHTML = '✅ 방패 코드 적용 완료';
-        fb.className = 'rounded-2xl bg-emerald-500/10 p-3 text-[13px] leading-relaxed text-emerald-100 ring-1 ring-emerald-400/40';
-        fb.innerHTML = '<p class="font-extrabold">🎉 완벽해요! 방패 알고리즘이 서버에 적용됐어요.</p>' +
+        fb.className = 'rounded-2xl bg-emerald-500/10 p-3 text-[12.5px] leading-relaxed text-emerald-100 ring-1 ring-emerald-400/40';
+        fb.innerHTML = '<p class="font-extrabold">🎉 완벽해요! 직접 조립한 방패 알고리즘이 서버에 적용됐어요.</p>' +
           '<p class="mt-1">이제 스마트폰 상품 위에 마우스를 올려 보세요. 초시계도, 쿠키 테이블도, AI 게이지도 꼼짝하지 않을 거예요!</p>';
         Sim.applyDefensePatch();
+        this.renderPalette();
+        this.renderWorkspace();
       },
     };
 
@@ -1583,9 +2024,9 @@
             targetId: 'btn-apply-patch',
             pos: 'top',
             step: '🕵️ 탐정 가이드 · 최종 미션',
-            title: '🧑‍💻 빈칸 3개를 골라 방패 완성하기!',
-            desc: '위 블록의 <b class="text-amber-300">빈칸(▼) 3개</b>를 알맞게 고른 뒤 <b class="text-emerald-300">[🚀 방패 코드 적용하기]</b> 버튼을 눌러 보세요!',
-            nextLabel: '👍 알겠어요 (스스로 해볼게요)',
+            title: '🧲 블록을 드래그해서 방패 코드를 조립하세요!',
+            desc: '왼쪽 <b class="text-amber-300">[🧰 엔트리 블록 꾸러미]</b>에서 필요한 블록 4개를 마우스로 끌어다 가운데 <b class="text-cyan-300">[🧩 블록 조립소]</b>에 끼운 뒤 <b class="text-emerald-300">[🚀 방패 코드 적용하기]</b>를 눌러 보세요!',
+            nextLabel: '👍 알겠어요 (직접 조립해 볼게요)',
             onNext: () => this.disable(),
           };
         }
