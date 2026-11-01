@@ -532,7 +532,7 @@
           <div class="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-700/80 px-4 py-2.5">
             <div class="flex items-center gap-2">
               <i data-lucide="database" class="h-4 w-4 text-sky-400"></i>
-              <h2 class="text-[14px] font-extrabold">서버 데이터베이스 · 서드파티 쿠키 테이블 <span class="text-[12px] font-semibold text-slate-400">(서버에 저장되는 내 디지털 발자국 목록)</span></h2>
+              <h2 class="text-[14px] font-extrabold">서버에 저장되는 내 디지털 발자국 목록 <span class="text-[12px] font-semibold text-slate-400">(서버 데이터베이스 · 서드파티 쿠키 테이블)</span></h2>
             </div>
             <div class="flex items-center gap-2">
               <span class="rounded-lg bg-rose-500/15 px-2.5 py-1 text-[12.5px] font-extrabold text-rose-300 ring-1 ring-rose-500/30">
@@ -1454,21 +1454,43 @@
         this.renderPalette();
         this.renderWorkspace();
         $('btn-apply-patch')?.addEventListener('click', () => this.apply());
-        $('btn-clear-patch')?.addEventListener('click', () => {
-          if (state.patched) return;
-          Sound.click();
-          this.placedCond = null;
-          this.placedInner = [];
-          this.renderPalette();
-          this.renderWorkspace();
-          this.updateChecklist(false);
-          $('patch-feedback').className = 'rounded-2xl bg-slate-800/60 p-3 text-[12.5px] leading-relaxed text-slate-300 ring-1 ring-slate-700';
-          $('patch-feedback').innerHTML = '🔄 조립소를 모두 비웠어요! 왼쪽 <b>[블록 꾸러미]</b>에서 블록을 마우스로 끌어다 놓아 보세요.';
+        $('btn-clear-patch')?.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          this.clearAll();
         });
 
         window.addEventListener('pointermove', (e) => this.onPointerMove(e));
         window.addEventListener('pointerup', (e) => this.onPointerUp(e));
         window.addEventListener('pointercancel', (e) => this.onPointerUp(e));
+      },
+
+      clearAll() {
+        Sound.get();
+        Sound.click();
+        // 패치 완료 후에도 다시 연습할 수 있도록 패치 잠금 해제 및 조립소 초기화
+        if (state.patched) {
+          state.patched = false;
+          state.optOut = false;
+          state.consent = 'yes';
+        }
+        this.placedCond = null;
+        this.placedInner = [];
+        this.renderPalette();
+        this.renderWorkspace();
+        this.updateChecklist(false);
+        const btn = $('btn-apply-patch');
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '🚀 방패 코드 적용하기';
+        }
+        const fb = $('patch-feedback');
+        if (fb) {
+          fb.className = 'rounded-2xl bg-slate-800/60 p-3 text-[12.5px] leading-relaxed text-slate-300 ring-1 ring-slate-700';
+          fb.innerHTML = '🔄 조립소를 모두 비웠어요! 왼쪽 <b>[블록 꾸러미]</b>에서 블록을 마우스로 끌어다 놓아 보세요.';
+        }
+        Phone.toast('🔄 블록 조립소를 모두 비웠어요!');
+        Sim.refreshAll();
       },
 
       isUsed(id) {
@@ -1665,6 +1687,7 @@
           this.renderPalette();
           this.renderWorkspace();
           this.updateChecklist(false);
+          Coach.sync();
           const placedEl = $(`placed-${d.blockId}`);
           if (placedEl) FX.flash(placedEl);
         } else if (d.source === 'workspace') {
@@ -1679,6 +1702,7 @@
             this.renderPalette();
             this.renderWorkspace();
             this.updateChecklist(false);
+            Coach.sync();
           }
         }
       },
@@ -2020,12 +2044,14 @@
           };
         }
         if (state.mode === 3) {
+          // 블록을 하나라도 조립하기 시작하면 말풍선이 조립소/비우기 버튼을 가리지 않도록 자동 숨김
+          if (Patch.placedCond || Patch.placedInner.length > 0) return null;
           return {
-            targetId: 'btn-apply-patch',
+            targetId: 'patch-palette',
             pos: 'top',
             step: '🕵️ 탐정 가이드 · 최종 미션',
             title: '🧲 블록을 드래그해서 방패 코드를 조립하세요!',
-            desc: '왼쪽 <b class="text-amber-300">[🧰 엔트리 블록 꾸러미]</b>에서 필요한 블록 4개를 마우스로 끌어다 가운데 <b class="text-cyan-300">[🧩 블록 조립소]</b>에 끼운 뒤 <b class="text-emerald-300">[🚀 방패 코드 적용하기]</b>를 눌러 보세요!',
+            desc: '아래 <b class="text-amber-300">[🧰 엔트리 블록 꾸러미]</b>에서 필요한 블록 4개를 마우스로 끌어다 가운데 <b class="text-cyan-300">[🧩 블록 조립소]</b>에 끼운 뒤 <b class="text-emerald-300">[🚀 방패 코드 적용하기]</b>를 눌러 보세요!',
             nextLabel: '👍 알겠어요 (직접 조립해 볼게요)',
             onNext: () => this.disable(),
           };
