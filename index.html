@@ -611,11 +611,11 @@
                 <div id="dc-if-hover" class="c-wrap" style="--c:#FFAB19">
                   <div class="c-head">만일 <span class="hex" style="--h:#5CB1D6">마우스 커서가 상품에 닿았는가?</span> 라면 <span id="dc-chip-hover" class="eval-chip">❌ 거짓</span></div>
                   <div id="dc-body-hover" class="c-body">
-                    <div id="dc-timer" class="blk" style="--c:#5CB1D6">⏱️ <span class="slot">체류시간 초시계</span> 작동 시작하기</div>
+                    <div id="dc-timer" class="blk" style="--c:#5CB1D6">⏱️ <span class="var">체류시간 초시계</span> <span class="slot">시작하기</span></div>
                     <div id="dc-loop" class="c-wrap" style="--c:#FFAB19">
                       <div class="c-head">🔁 1초마다 반복하기</div>
                       <div class="c-body">
-                        <div id="dc-add" class="blk" style="--c:#FF661A"><span class="slot">체류 데이터</span>를 <span class="var">체류시간 쿠키 리스트</span>에 추가하기</div>
+                        <div id="dc-add" class="blk" style="--c:#FF661A"><span class="var">체류시간 쿠키 리스트</span>에 <span class="slot">체류 데이터</span> 추가하기</div>
                         <div id="dc-score" class="blk" style="--c:#FF8C1A"><span class="var">AI 관심도 변수</span>에 <span class="slot">20</span> 더하기</div>
                         <div id="dc-if-ad" class="c-wrap" style="--c:#FFAB19">
                           <div class="c-head">만일 <span class="hex" style="--h:#59C059"><span class="var">AI 관심도 변수</span> &gt;= <span class="slot">100</span></span> 이라면 <span id="dc-chip-ad" class="eval-chip">❌ 거짓 (0/100)</span></div>
@@ -718,9 +718,9 @@
                 </p>
                 <ul class="mt-2.5 space-y-1.5 text-[12px]">
                   <li id="chk-cond" class="text-slate-400">⬜ ① 언제 방패를 작동시킬까? (조건)</li>
-                  <li id="chk-timer" class="text-slate-400">⬜ ② 2단계의 '초시계'를 어떻게 막을까?</li>
-                  <li id="chk-list" class="text-slate-400">⬜ ③ 2단계의 '쿠키 리스트'를 어떻게 할까?</li>
-                  <li id="chk-switch" class="text-slate-400">⬜ ④ 앞으로의 추적을 막는 '스위치'는?</li>
+                  <li id="chk-timer" class="text-slate-400">⬜ ② 2단계의 '체류시간 초시계'는?</li>
+                  <li id="chk-list" class="text-slate-400">⬜ ③ 2단계의 '체류시간 쿠키 리스트'는?</li>
+                  <li id="chk-switch" class="text-slate-400">⬜ ④ 2단계의 'AI 관심도 변수'는?</li>
                 </ul>
               </div>
 
@@ -1382,7 +1382,7 @@
           role: 'cond',
           color: '#FFAB19',
           ok: false,
-          html: '만일 <span class="hex" style="--h:#59C059">사용자 선택 == <span class="slot">"동의(Yes)"</span></span> 라면',
+          html: '만일 <span class="hex" style="--h:#59C059">쿠키 동의 여부 == <span class="slot">"동의(Yes)"</span></span> 라면',
         },
         {
           id: 'cond_no',
@@ -1390,7 +1390,7 @@
           role: 'cond',
           color: '#FFAB19',
           ok: true,
-          html: '만일 <span class="hex" style="--h:#59C059">사용자 선택 == <span class="slot">"거부(No)"</span></span> 라면',
+          html: '만일 <span class="hex" style="--h:#59C059">쿠키 동의 여부 == <span class="slot">"거부(No)"</span></span> 라면',
         },
         {
           id: 'timer_start',
@@ -1398,7 +1398,7 @@
           role: 'timer',
           color: '#5CB1D6',
           ok: false,
-          html: '⏱️ <span class="slot">체류시간 초시계</span> 작동 시작하기',
+          html: '⏱️ <span class="var">체류시간 초시계</span> <span class="slot">시작하기</span>',
         },
         {
           id: 'timer_stop',
@@ -1406,7 +1406,7 @@
           role: 'timer',
           color: '#5CB1D6',
           ok: true,
-          html: '⏱️ <span class="slot">체류시간 초시계</span> 멈추기',
+          html: '⏱️ <span class="var">체류시간 초시계</span> <span class="slot">멈추기</span>',
         },
         {
           id: 'list_add',
@@ -1414,7 +1414,7 @@
           role: 'list',
           color: '#FF661A',
           ok: false,
-          html: '<span class="var">체류시간 쿠키 리스트</span> 에 <span class="slot">체류 데이터 추가하기</span>',
+          html: '<span class="var">체류시간 쿠키 리스트</span>에 <span class="slot">체류 데이터</span> 추가하기',
         },
         {
           id: 'list_clear',
@@ -1422,7 +1422,7 @@
           role: 'list',
           color: '#FF661A',
           ok: true,
-          html: '<span class="var">체류시간 쿠키 리스트</span> 의 <span class="slot">모든 항목 삭제하기</span>',
+          html: '<span class="var">체류시간 쿠키 리스트</span>의 <span class="slot">모든 항목</span> 삭제하기',
         },
         {
           id: 'var_off',
@@ -1430,7 +1430,7 @@
           role: 'switch',
           color: '#FF8C1A',
           ok: false,
-          html: '<span class="var">추적 차단 스위치</span> 변수를 <span class="slot">꺼짐(OFF)</span> 으로 정하기',
+          html: '<span class="var">AI 관심도 변수</span>에 <span class="slot">20</span> 더하기',
         },
         {
           id: 'var_on',
@@ -1438,7 +1438,7 @@
           role: 'switch',
           color: '#FF8C1A',
           ok: true,
-          html: '<span class="var">추적 차단 스위치</span> 변수를 <span class="slot">켜짐(ON)</span> 으로 정하기',
+          html: '<span class="var">AI 관심도 변수</span>를 <span class="slot">0</span> 으로 정하기',
         },
       ],
 
@@ -1717,19 +1717,19 @@
           },
           {
             elId: 'chk-timer',
-            label: '② 2단계의 \'초시계\'를 어떻게 막을까?',
+            label: '② 2단계의 \'체류시간 초시계\'는?',
             placed: this.placedInner.some(id => this.getBlock(id)?.role === 'timer'),
             ok: this.placedInner.includes('timer_stop'),
           },
           {
             elId: 'chk-list',
-            label: '③ 2단계의 \'쿠키 리스트\'를 어떻게 할까?',
+            label: '③ 2단계의 \'체류시간 쿠키 리스트\'는?',
             placed: this.placedInner.some(id => this.getBlock(id)?.role === 'list'),
             ok: this.placedInner.includes('list_clear'),
           },
           {
             elId: 'chk-switch',
-            label: '④ 앞으로의 추적을 막는 \'스위치\'는?',
+            label: '④ 2단계의 \'AI 관심도 변수\'는?',
             placed: this.placedInner.some(id => this.getBlock(id)?.role === 'switch'),
             ok: this.placedInner.includes('var_on'),
           },
@@ -1776,46 +1776,46 @@
           hints.push('🤔 ① <b>언제 방패를 작동시킬지(조건 블록)</b>가 비어 있어요! 왼쪽 꾸러미에서 노란색 조건 블록을 끌어다 놓아 보세요.');
           condEl?.classList.add('blk-wrong');
         } else if (this.placedCond !== 'cond_no') {
-          hints.push('🤔 ① 발자국 수집을 막는 방패는 사용자가 쿠키를 <b>동의(Yes)</b>했을 때 켜져야 할까요, <b>거부(No)</b>했을 때 켜져야 할까요?');
+          hints.push('🤔 ① 발자국 수집을 막는 방패는 <b class="text-amber-300">쿠키 동의 여부</b>가 <b>"동의(Yes)"</b>일 때 켜져야 할까요, <b>"거부(No)"</b>일 때 켜져야 할까요?');
           condEl?.classList.add('blk-wrong');
         } else {
           condEl?.classList.remove('blk-wrong');
           condEl?.classList.add('blk-right');
         }
 
-        // 2. 초시계 블록 검사 (2단계 공격 코드 vs 3단계 방어 코드)
+        // 2. 체류시간 초시계 블록 검사 (2단계 공격 코드 vs 3단계 방어 코드)
         const timerId = this.placedInner.find(id => this.getBlock(id)?.role === 'timer');
         const timerEl = timerId ? $(`placed-${timerId}`) : null;
         if (!timerId) {
-          hints.push('🤔 ② 2단계에서 서버가 <b>초시계</b>로 내 체류 시간을 쟀어요! 이를 막는 파란색 초시계 블록을 끌어다 놓아 주세요.');
+          hints.push('🤔 ② 2단계에서 작동하던 파란색 <b>[체류시간 초시계]</b> 블록을 찾아 조립소 안쪽으로 끌어다 놓아 주세요.');
         } else if (timerId !== 'timer_stop') {
-          hints.push('🤔 ② <b>[초시계 작동 시작하기]</b>는 2단계의 수집 코드예요! 시간을 재지 못하게 막으려면 반대로 어떻게 해야 할까요?');
+          hints.push('🤔 ② <b>[체류시간 초시계 시작하기]</b>는 2단계의 수집 코드예요! 시간을 재지 못하게 막으려면 반대로 어떻게 해야 할까요?');
           timerEl?.classList.add('blk-wrong');
         } else {
           timerEl?.classList.remove('blk-wrong');
           timerEl?.classList.add('blk-right');
         }
 
-        // 3. 쿠키 리스트 블록 검사 (2단계 공격 코드 vs 3단계 방어 코드)
+        // 3. 체류시간 쿠키 리스트 블록 검사 (2단계 공격 코드 vs 3단계 방어 코드)
         const listId = this.placedInner.find(id => this.getBlock(id)?.role === 'list');
         const listEl = listId ? $(`placed-${listId}`) : null;
         if (!listId) {
-          hints.push('🤔 ③ 2단계에서 서버가 <b>쿠키 리스트</b>에 내 기록을 쌓았어요! 빨간색 쿠키 리스트 블록을 끌어다 놓아 주세요.');
+          hints.push('🤔 ③ 2단계에서 기록이 쌓이던 빨간색 <b>[체류시간 쿠키 리스트]</b> 블록을 찾아 조립소 안쪽으로 끌어다 놓아 주세요.');
         } else if (listId !== 'list_clear') {
-          hints.push('🤔 ③ <b>[체류 데이터 추가하기]</b>는 2단계의 수집 코드예요! 이미 쌓인 발자국을 없애려면 어떤 블록을 써야 할까요?');
+          hints.push('🤔 ③ <b>[체류시간 쿠키 리스트에 체류 데이터 추가하기]</b>는 2단계의 수집 코드예요! 쌓인 발자국을 없애려면 어떤 블록을 써야 할까요?');
           listEl?.classList.add('blk-wrong');
         } else {
           listEl?.classList.remove('blk-wrong');
           listEl?.classList.add('blk-right');
         }
 
-        // 4. 추적 차단 스위치 변수 블록 검사
+        // 4. AI 관심도 변수 블록 검사 (2단계 공격 코드 vs 3단계 방어 코드)
         const switchId = this.placedInner.find(id => this.getBlock(id)?.role === 'switch');
         const switchEl = switchId ? $(`placed-${switchId}`) : null;
         if (!switchId) {
-          hints.push('🤔 ④ 앞으로의 추적을 막아 줄 주황색 <b>[추적 차단 스위치]</b> 변수 블록도 끌어다 놓아 주세요!');
+          hints.push('🤔 ④ 2단계에서 점수가 올라가던 주황색 <b>[AI 관심도 변수]</b> 블록을 찾아 조립소 안쪽으로 끌어다 놓아 주세요!');
         } else if (switchId !== 'var_on') {
-          hints.push('🤔 ④ <b>추적 \'차단\'</b> 스위치예요! 추적을 막으려면 차단 스위치를 <b>켜짐(ON)</b>으로 해야 할까요, 꺼짐(OFF)으로 해야 할까요?');
+          hints.push('🤔 ④ <b>[AI 관심도 변수에 20 더하기]</b>는 맞춤 광고를 보내는 2단계 수집 코드예요! 관심도 점수를 초기화하려면 어떤 블록을 써야 할까요?');
           switchEl?.classList.add('blk-wrong');
         } else {
           switchEl?.classList.remove('blk-wrong');
